@@ -134,13 +134,17 @@ struct
     else list
 
   let identity n =
-    let rec nlist n ele res =
+    let rec makeRow n r res =
       if n = 0 then res
-      else nlist (n-1) ele (res@[ele])
+      else if (List.length res) = r then makeRow (n-1) r (res@[Scal.one])
+      else makeRow (n-1) r (res@[Scal.zero])
     in
-    if n <= 0 then raise MatrixIllegal else
-    let e = nlist n Scal.zero [] in
-    nlist n e []
+    let rec nlist d n r res =
+      if n = 0 then res
+      else nlist d (n-1) (r+1) (res@[makeRow d r []])
+    in
+    if n <= 0 then raise MatrixIllegal
+    else nlist n n 0 []
 
   let dim m = List.length m
 
