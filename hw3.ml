@@ -102,8 +102,8 @@ struct
     if d1 <> d2 then raise VectorIllegal
     else
     match (x, y) with
-      | ([], _) -> raise VectorIllegal (*TODO*)
-      | (_, []) -> raise VectorIllegal (*TODO*)
+      | ([], _) -> Scal.zero
+      | (_, []) -> Scal.zero
       | (h1::t1, h2::t2) -> vmul t1 t2 (Scal.( ** ) h1 h2)
 
 end
@@ -115,11 +115,11 @@ module MatrixFn (Scal : SCALAR) : MATRIX with type elem = Scal.t
 =
 struct
   type elem = Scal.t
-  type t = unit
+  type t = (elem list) list
 
   exception MatrixIllegal
 
-  let create _ = raise NotImplemented
+  let create list = list
   let identity _ = raise NotImplemented
   let dim _ = raise NotImplemented
   let transpose _ = raise NotImplemented
