@@ -170,7 +170,7 @@ struct
       | ([], _) -> res
       | (_, []) -> res
       | (h1::t1, h2::t2) -> 
-        madder t1 t2 res@[vadder h1 h2 []]
+        madder t1 t2 (res@[vadder h1 h2 []])
     in
     let d1 = dim x in
     let d2 = dim y in
