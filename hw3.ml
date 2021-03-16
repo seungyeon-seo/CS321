@@ -54,17 +54,58 @@ module VectorFn (Scal : SCALAR) : VECTOR with type elem = Scal.t
 =
 struct
   type elem = Scal.t
-  type t = unit
+  type t = elem list
 
   exception VectorIllegal
 
-  let create _ = raise NotImplemented
-  let to_list _ = raise NotImplemented
-  let dim _ = raise NotImplemented
-  let nth _ = raise NotImplemented
-  let (++) _ _ = raise NotImplemented
-  let (==) _ _ = raise NotImplemented
-  let innerp _ _ = raise NotImplemented
+  let create list = list
+  let to_list v = v
+  let dim v = List.length v
+  let nth v n =
+    if n >= (dim v) then raise VectorIllegal
+    else List.nth v n
+  
+  let (++) x y =
+    let rec vadder v1 v2 res =
+      match (v1, v2) with
+      | ([], _) -> res
+      | (_, []) -> res
+      | (h1::t1, h2::t2) -> vadder t1 t2 res@[(Scal.(++) h1 h2)]
+    in
+    let d1 = dim x in
+    let d2 = dim y in 
+    if d1 <> d2 then raise VectorIllegal
+    else vadder x y []
+
+  let (==) x y =
+    let rec vequal v1 v2 =
+      match (v1, v2) with
+      | ([], _) -> true
+      | (_, []) -> true
+      | (h1::t1, h2::t2) -> if (Scal.(==) h1 h2) = false then false
+                            else vequal t1 t2
+    in
+    let d1 = dim x in
+    let d2 = dim y in
+    if d1 <> d2 then raise VectorIllegal
+    else vequal x y
+
+  let innerp x y =
+    let rec vmul v1 v2 res =
+      match (v1, v2) with
+      | ([], _) -> res
+      | (_, []) -> res
+      | (h1::t1, h2::t2) -> vmul t1 t2 (Scal.(++) res (Scal.( ** ) h1 h2))
+    in
+    let d1 = dim x in
+    let d2 = dim y in
+    if d1 <> d2 then raise VectorIllegal
+    else
+    match (x, y) with
+      | ([], _) -> raise VectorIllegal
+      | (_, []) -> raise VectorIllegal
+      | (h1::t1, h2::t2) -> vmul t1 t2 (Scal.( ** ) h1 h2)
+
 end
 
 (* Problem 1-3 *)
