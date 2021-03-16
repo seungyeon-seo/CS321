@@ -58,7 +58,11 @@ struct
 
   exception VectorIllegal
 
-  let create list = list
+  let create list =
+    match list with
+    | [] -> raise VectorIllegal
+    | _ -> list 
+
   let to_list v = v
   let dim v = List.length v
   let nth v n =
@@ -70,7 +74,7 @@ struct
       match (v1, v2) with
       | ([], _) -> res
       | (_, []) -> res
-      | (h1::t1, h2::t2) -> vadder t1 t2 res@[(Scal.(++) h1 h2)]
+      | (h1::t1, h2::t2) -> vadder t1 t2 (res@[(Scal.(++) h1 h2)])
     in
     let d1 = dim x in
     let d2 = dim y in 
@@ -119,16 +123,100 @@ struct
 
   exception MatrixIllegal
 
-  let create list = list
-  let identity _ = raise NotImplemented
-  let dim _ = raise NotImplemented
-  let transpose _ = raise NotImplemented
-  let to_list _ = raise NotImplemented
-  let get _ _ _ = raise NotImplemented 
+  let create list =
+    let rec checkInput l n =
+      match l with
+      | [] -> true
+      | h::t -> if (List.length h) <> n then false else checkInput t n 
+    in
+    if List.length list = 0 then raise MatrixIllegal
+    else if (checkInput list (List.length list)) = false then raise MatrixIllegal
+    else list
 
-  let (++) _ _ = raise NotImplemented
-  let ( ** ) _ _ = raise NotImplemented
-  let (==) _ _ = raise NotImplemented
+  let identity n =
+    let rec nlist n ele res =
+      if n = 0 then res
+      else nlist (n-1) ele (res@[ele])
+    in
+    if n <= 0 then raise MatrixIllegal else
+    let e = nlist n Scal.zero [] in
+    nlist n e []
+
+  let dim m = List.length m
+
+  let transpose _ = raise NotImplemented
+
+
+  let to_list m = m
+  let get m r c = List.nth (List.nth m r) c
+
+  let (++) x y =
+    let rec vadder v1 v2 res =
+      match (v1, v2) with
+      | ([], _) -> res
+      | (_, []) -> res
+      | (h1::t1, h2::t2) -> vadder t1 t2 (res@[(Scal.(++) h1 h2)])
+    in
+    let rec madder m1 m2 res =
+      match (m1, m2) with
+      | ([], _) -> res
+      | (_, []) -> res
+      | (h1::t1, h2::t2) -> 
+        madder t1 t2 res@[vadder h1 h2 []]
+    in
+    let d1 = dim x in
+    let d2 = dim y in
+    if d1 <> d2 then raise MatrixIllegal else
+    madder x y []
+
+  let ( ** ) x y =
+    let rec vmul v1 v2 res =
+      match (v1, v2) with
+      | ([], _) -> res
+      | (_, []) -> res
+      | (h1::t1, h2::t2) -> vmul t1 t2 (Scal.(++) res (Scal.( ** ) h1 h2))
+    in
+    let callvmul a b =
+      match (a, b) with
+      | ([], _) -> Scal.zero
+      | (_, []) -> Scal.zero
+      | (h1::t1, h2::t2) -> vmul t1 t2 (Scal.( ** ) h1 h2)
+    in
+    let rec vmmul v m res = 
+      match m with
+      | [] -> res
+      | h::t -> vmmul v t res@[callvmul v h]
+    in
+    let rec mmul m1 m2 res =
+      match (m1, m2) with
+      | ([], _) -> res
+      | (_, []) -> res
+      | (h1::t1, _) -> mmul t1 m2 res@[vmmul h1 m2 []]
+    in
+    let d1 = dim x in
+    let d2 = dim y in
+    if d1 <> d2 then raise MatrixIllegal else
+    mmul x y []
+    
+  let (==) x y =
+    let rec vequal v1 v2 =
+      match (v1, v2) with
+      | ([], _) -> true
+      | (_, []) -> true
+      | (h1::t1, h2::t2) -> if (Scal.(==) h1 h2) = false then false
+                            else vequal t1 t2
+    in
+    let rec mequal m1 m2 =
+      match (m1, m2) with
+      | ([], _) -> true
+      | (_, []) -> true
+      | (h1::t1, h2::t2) -> if (vequal h1 h2) = false then false
+                            else mequal t1 t2
+    in
+    let d1 = dim x in
+    let d2 = dim y in
+    if d1 <> d2 then raise MatrixIllegal else
+    mequal x y
 end
 
 (* Problem 2-1 *)
