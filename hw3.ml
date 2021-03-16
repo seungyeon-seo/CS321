@@ -102,8 +102,8 @@ struct
     if d1 <> d2 then raise VectorIllegal
     else
     match (x, y) with
-      | ([], _) -> raise VectorIllegal
-      | (_, []) -> raise VectorIllegal
+      | ([], _) -> raise VectorIllegal (*TODO*)
+      | (_, []) -> raise VectorIllegal (*TODO*)
       | (h1::t1, h2::t2) -> vmul t1 t2 (Scal.( ** ) h1 h2)
 
 end
