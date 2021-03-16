@@ -58,10 +58,7 @@ struct
 
   exception VectorIllegal
 
-  let create list =
-    match list with
-    | [] -> ()
-    | h::t -> (list)
+  let create _ = raise NotImplemented
   let to_list _ = raise NotImplemented
   let dim _ = raise NotImplemented
   let nth _ = raise NotImplemented
