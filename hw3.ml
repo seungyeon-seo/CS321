@@ -152,7 +152,11 @@ struct
 
 
   let to_list m = m
-  let get m r c = List.nth (List.nth m r) c
+  let get m r c =
+    let d = dim m in
+    if r >= d then raise MatrixIllegal
+    else if c >= d then raise MatrixIllegal
+    else List.nth (List.nth m r) c
 
   let (++) x y =
     let rec vadder v1 v2 res =
