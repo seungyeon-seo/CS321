@@ -148,10 +148,23 @@ struct
 
   let dim m = List.length m
 
-  let transpose _ = raise NotImplemented
-
+  let transpose m =
+    let rec matrixSlice m res =
+      if (List.length m) = 0 then res
+      else matrixSlice (List.tl m) (res@[(List.hd (List.hd m))])
+    in
+    let rec matrixSlice2 m res =
+      if (List.length m) = 0 then res
+      else matrixSlice2 (List.tl m) (res@[(List.tl(List.hd m))])
+    in
+    let rec transpose2 m resm d n =
+      if n = d then resm
+      else transpose2 (List.tl (matrixSlice2 m [[]])) (resm@([matrixSlice m []])) d (n+1)
+    in
+    transpose2 m [] (dim m) 0
 
   let to_list m = m
+
   let get m r c =
     let d = dim m in
     if r >= d then raise MatrixIllegal
@@ -204,7 +217,7 @@ struct
     let d1 = dim x in
     let d2 = dim y in
     if d1 <> d2 then raise MatrixIllegal else
-    mmul x y []
+    mmul x (transpose y) []
     
   let (==) x y =
     let rec vequal v1 v2 =
