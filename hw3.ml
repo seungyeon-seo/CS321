@@ -249,7 +249,14 @@ sig
 end
 =
 struct
-  let closure _ = raise NotImplemented
+  let closure m =
+    let i = Mat.identity(Mat.dim m) in
+    let rec closure2 cur =
+      let next = (Mat.(++) i (Mat.( ** ) cur m)) in
+      if Mat.(==) cur next then cur
+      else closure2 next
+    in
+    closure2 i
 end
 
 (* Problem 2-2 *)
