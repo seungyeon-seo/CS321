@@ -342,17 +342,32 @@ struct
 
   exception ScalarIllegal
 
-  let zero = 999999              (* Dummy value : Rewrite it! *)
-  let one = 999999               (* Dummy value : Rewrite it! *)
+  let zero = 0              (* Dummy value : Rewrite it! *)
+  let one = -1               (* Dummy value : Rewrite it! *)
  
-  let (++) _ _ = raise NotImplemented
-  let ( ** ) _ _ = raise NotImplemented
-  let (==) _ _ = raise NotImplemented
+  let (++) x y =
+    if x = one then one
+    else if y = one then one
+    else if x < y then y
+    else x
+  
+  let ( ** ) x y =
+    if x = one then y
+    else if y = one then x
+    else if x < y then x
+    else y
+
+  let (==) x y = x = y
+
 end
 
-(* .. Write some code here .. *)
+module WgtMat = MatrixFn (Weight)
+module WgtMatClosure = ClosureFn (WgtMat)
 
-let weight _ = raise NotImplemented
+let weight m =
+  let mat = try WgtMat.create m with _ -> raise IllegalFormat in
+  let cls = try WgtMatClosure.closure mat with _ -> raise IllegalFormat in
+  try WgtMat.to_list cls with _ -> raise IllegalFormat
 
 let ml =
   [[-1; 0  ; 0  ; 0  ; 0  ; 0   ];
