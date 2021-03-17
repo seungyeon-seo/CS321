@@ -206,13 +206,13 @@ struct
     let rec vmmul v m res = 
       match m with
       | [] -> res
-      | h::t -> vmmul v t res@[callvmul v h]
+      | h::t -> vmmul v t (res@[callvmul v h])
     in
     let rec mmul m1 m2 res =
       match (m1, m2) with
       | ([], _) -> res
       | (_, []) -> res
-      | (h1::t1, _) -> mmul t1 m2 res@[vmmul h1 m2 []]
+      | (h1::t1, _) -> mmul t1 m2 (res@[vmmul h1 m2 []])
     in
     let d1 = dim x in
     let d2 = dim y in
