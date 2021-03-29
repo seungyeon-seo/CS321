@@ -18,7 +18,32 @@ let getFreshVariable s =
 (*
  * implement a single step with reduction using the call-by-value strategy.
  *)
-let rec stepv e = raise NotImplemented         
+
+let rec freeVariable e  =
+  match e with
+  | Var v -> [v]
+  | Lam (v, e') -> List.filter (fun x -> x<>v) (freeVariable e')
+  | App (e1, e2) -> (freeVariable e1)@(freeVariable e2)
+
+let isFreeVariable v e =
+  let fv = freeVariable e in
+  if List.exists (fun x -> x=v) fv then true else false
+
+(* let rec stepv e = raise NotImplemented *)
+let rec stepv e =
+   let rec substitution e x e' =
+  match e' with
+  | Var y ->
+    if x=y then stepv e else y
+  | Lam (y, e1) ->
+    if x=y then 
+  | App (e1, e2) -> 
+    stepv (App ((substitution e x e1) (substitution e x e2)))
+  in      
+  match e with
+  | Var x -> x
+  | Lam (x, e') -> 
+
 
 (*
  * implement a single step with reduction using the call-by-name strategy.
