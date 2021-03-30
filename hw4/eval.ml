@@ -30,11 +30,18 @@ let isFreeVariable v e =
   let fv = freeVariable e in
   if List.exists (fun x -> x=v) fv then true else false
 
-let swapExp e x y =
+let rec swapExp e x y =
     match e with 
-    | Var x -> e
-    | _ -> e
-    (* TODO: implement swap function *)
+    | Var v ->
+      if x=v then Var y
+      else if x=y then Var x
+      else Var v
+    | Lam (v, e') ->
+      if x=v then Lam (y, (swapExp e' x y))
+      else if y=v then Lam (x, (swapExp e' x y))
+      else Lam (v, (swapExp e' x y))
+    | App (e1, e2) ->
+      App((swapExp e1 x y), (swapExp e2 x y))
 
 let rec isAlphaEq e1 e2 =
   match (e1, e2) with
@@ -54,7 +61,7 @@ let rec stepv e =
   | Lam (y, e1) ->
     if x=y then Lam (y, e1)
     else if isFreeVariable y e then
-      let z = getFreshVariable x in Lam (z, (substitution e x (swapExp e1 y (Var(z)))))
+      let z = getFreshVariable x in Lam (z, (substitution e x (swapExp e1 y z)))
     else Lam (y, (substitution e x e1))
   | App (e1, e2) -> 
     (App ((substitution e x e1), (substitution e x e2)))
@@ -65,10 +72,11 @@ let rec stepv e =
     (match e' with
     | Var y -> e'
     | Lam (y, ee) -> Lam (y, (stepv ee))
-    | App (e1, e2) -> Lam (x, e2))
+    | App (e1, e2) -> if (isAlphaEq e1 e2) then e1 else Lam (x, e2))
   | App (e1, e2) -> 
     let e1' = stepv e1 in
     let e2' = stepv e2 in
+    if isAlphaEq e1 e2 then e1 else
     match (e1', e2') with
     | ((Lam (a, e11)), Var b) -> substitution e2' a e11 (* App: B-reduction *)
     | (Var a, _) -> Lam (a, e2') (* Arg *)
