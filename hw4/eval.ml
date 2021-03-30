@@ -68,15 +68,15 @@ let rec stepv e =
   in
   match e with
   | Var x -> raise Stuck
-  | Lam (x, e') ->
+  | Lam (x, e') -> (*Lam (x, (stepv e'))*)
     (match e' with
     | Var y -> e'
-    | Lam (y, ee) -> Lam (y, (stepv ee))
+    | Lam (y, ee) -> Lam (x, ee)
     | App (e1, e2) -> if (isAlphaEq e1 e2) then e1 else Lam (x, e2))
   | App (e1, e2) -> 
     let e1' = stepv e1 in
     let e2' = stepv e2 in
-    if isAlphaEq e1 e2 then e1 else
+    if isAlphaEq e1 e2 then e1 else 
     match (e1', e2') with
     | ((Lam (a, e11)), Var b) -> substitution e2' a e11 (* App: B-reduction *)
     | (Var a, _) -> Lam (a, e2') (* Arg *)
@@ -86,7 +86,7 @@ let rec stepv e =
 (*
  * implement a single step with reduction using the call-by-name strategy.
  *)
-let rec stepn e = stepv e    
+let rec stepn e = raise NotImplemented
 
 let stepOpt stepf e = try Some (stepf e) with Stuck -> None
 
