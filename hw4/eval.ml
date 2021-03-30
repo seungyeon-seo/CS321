@@ -30,14 +30,23 @@ let isFreeVariable v e =
   let fv = freeVariable e in
   if List.exists (fun x -> x=v) fv then true else false
 
-(* let rec stepv e = raise NotImplemented *)
-let rec stepv e =
-  let swapExp e x y =
+let swapExp e x y =
     match e with 
     | Var x -> e
     | _ -> e
     (* TODO: implement swap function *)
-  in
+
+let rec isAlphaEq e1 e2 =
+  match (e1, e2) with
+  | (Var x, Var y) -> if x=y then true else false
+  | (Lam (x, e1'), Lam (y, e2')) ->
+    if x<>y && ((isFreeVariable y e1')=false) && (isAlphaEq (swapExp e1' x y) e2') then true else false
+  | (App (e11, e12), App (e21, e22)) ->
+    if (isAlphaEq e11 e21) && (isAlphaEq e12 e22) then true else false
+  | _ -> false
+
+(* let rec stepv e = raise NotImplemented *)
+let rec stepv e =
   let rec substitution e x e' =
   match e' with
   | Var y ->
