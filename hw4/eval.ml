@@ -52,9 +52,7 @@ let rec isAlphaEq e1 e2 =
     if (isAlphaEq e11 e21) && (isAlphaEq e12 e22) then true else false
   | _ -> false
 
-(* let rec stepv e = raise NotImplemented *)
-let rec stepv e =
-  let rec substitution e x e' =
+let rec substitution e x e' =
   match e' with
   | Var y ->
     if x=y then e else Var y
@@ -65,28 +63,38 @@ let rec stepv e =
     else Lam (y, (substitution e x e1))
   | App (e1, e2) -> 
     (App ((substitution e x e1), (substitution e x e2)))
-  in
+
+(* let rec stepv e = raise NotImplemented *)
+let rec stepv e =
   match e with
   | Var x -> raise Stuck
-  | Lam (x, e') -> (*Lam (x, (stepv e'))*)
-    (match e' with
+  | Lam (x, e') -> Lam (x, stepv e')
+    (* (match e' with
     | Var y -> e'
     | Lam (y, ee) -> Lam (x, ee)
-    | App (e1, e2) -> if (isAlphaEq e1 e2) then e1 else Lam (x, e2))
+    | App (e1, e2) -> if (isAlphaEq e1 e2) then e1 else Lam (x, e2)) *)
   | App (e1, e2) -> 
-    let e1' = stepv e1 in
-    let e2' = stepv e2 in
+    (* let e1' = stepv e1 in
+    let e2' = stepv e2 in *)
     if isAlphaEq e1 e2 then e1 else 
-    match (e1', e2') with
-    | ((Lam (a, e11)), Var b) -> substitution e2' a e11 (* App: B-reduction *)
-    | (Var a, _) -> Lam (a, e2') (* Arg *)
-    | (_, _) -> App (e1', e2) (* Lam *)
+    match (e1, e2) with
+    | ((Lam (a, e1')), Var b) -> substitution e2 a e1' (* App: B-reduction *)
+    | ((Lam (a, e1')), _) -> App (e1, (stepv e2)) (*Lam (a, e2') * Arg *)
+    | (_, _) -> App ((stepv e1), e2) (* Lam *)
 
 
 (*
  * implement a single step with reduction using the call-by-name strategy.
  *)
-let rec stepn e = raise NotImplemented
+let rec stepn e =
+  match e with
+  | Var x -> raise Stuck
+  | Lam (x, e') -> Lam (x, stepv e')
+  | App (e1, e2) ->
+  if isAlphaEq e1 e2 then e1 else
+  match (e1, e2) with 
+  | (Lam (x, e1'), _) -> substitution e2 x e1'
+  | (_, _) -> App ((stepn e1), e2)
 
 let stepOpt stepf e = try Some (stepf e) with Stuck -> None
 
@@ -99,4 +107,3 @@ let stepStream stepf e =
     | Some e' -> Stream.icons e' (steps e')
   in 
   Stream.icons e (steps e)
-
