@@ -91,7 +91,7 @@ let rec stepn e =
   | Var x -> raise Stuck
   | Lam (x, e') -> raise Stuck
   | App (e1, e2) ->
-    if isAlphaEq e1 e2 then e1 else
+    (* if isAlphaEq e1 e2 then e1 else *)
     match (e1, e2) with 
     | (Lam (x, e1'), _) -> substitution e2 x e1'
     | (_, _) -> App ((stepn e1), e2)
