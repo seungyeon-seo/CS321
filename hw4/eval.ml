@@ -68,7 +68,7 @@ let rec substitution e x e' =
 let rec stepv e =
   match e with
   | Var x -> raise Stuck
-  | Lam (x, e') -> Lam (x, stepv e')
+  | Lam (x, e') -> raise Stuck
     (* (match e' with
     | Var y -> e'
     | Lam (y, ee) -> Lam (x, ee)
@@ -89,12 +89,12 @@ let rec stepv e =
 let rec stepn e =
   match e with
   | Var x -> raise Stuck
-  | Lam (x, e') -> Lam (x, stepv e')
+  | Lam (x, e') -> raise Stuck
   | App (e1, e2) ->
-  if isAlphaEq e1 e2 then e1 else
-  match (e1, e2) with 
-  | (Lam (x, e1'), _) -> substitution e2 x e1'
-  | (_, _) -> App ((stepn e1), e2)
+    if isAlphaEq e1 e2 then e1 else
+    match (e1, e2) with 
+    | (Lam (x, e1'), _) -> substitution e2 x e1'
+    | (_, _) -> App ((stepn e1), e2)
 
 let stepOpt stepf e = try Some (stepf e) with Stuck -> None
 
