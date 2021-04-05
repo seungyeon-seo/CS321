@@ -10,27 +10,27 @@ val typeOpt : Tml.exp -> Tml.tp option *)
 (***************************************************** 
  * replace unit by your own type for typing contexts *
  *****************************************************)
-type context = Empty | Next of context * (Tml.var * Tml.tp)
+type context = Empty | Union of context * Tml.var * Tml.tp
 
 (*
  * For each function you introduce, 
  * write its type, specification, and invariant. 
  *)
 
-let createEmptyContext () = raise TypeError 
+let createEmptyContext () = Empty
 
 (* if x:t in cxt then true else false *)
 let rec isElement cxt x=
     match cxt with
     | Empty -> raise TypeError
-    | Next (cxt', (x', t)) -> if x=x' then t else isElement cxt' x
+    | Union (cxt', x', t) -> if x=x' then t else (isElement cxt' x)
 
 (* val typing : context -> Tml.exp -> Tml.tp *)
 let rec typing cxt e =
     match e with
     | Var x -> isElement cxt x (* Var *)
     | Lam (x, t, e') -> (* ->I *)
-        let b = typing (Next (cxt, (x, t))) e' in Fun (t, b)
+        let b = (typing (Union (cxt, x, t)) e') in Fun(t, b)
     | App (e1, e2) ->
         let t1 = typing cxt e1 in
         let t2 = typing cxt e2 in
@@ -61,12 +61,12 @@ let rec typing cxt e =
         let t = typing cxt e' in
         (match t with
         | Sum (a1, a2) ->
-            let t1 = typing (Next (cxt, (x1, a1))) e1 in
-            let t2 = typing (Next (cxt, (x2, a2))) e2 in
+            let t1 = typing (Union (cxt, x1, a1)) e1 in
+            let t2 = typing (Union (cxt, x2, a2)) e2 in
             if t1=t2 then t1 else raise TypeError
         | _ -> raise TypeError )
     | Fix (x, a, e') -> (* Fix *)
-        if (typing (Next (cxt, (x, a))) e') = a then a else raise TypeError
+        if (typing (Union (cxt, x, a)) e') = a then a else raise TypeError
     | True -> Bool (* True *)
     | False -> Bool (* False *)
     | Ifthenelse (e', e1, e2) -> (* If *)
@@ -77,6 +77,7 @@ let rec typing cxt e =
     | Plus -> Fun (Prod (Int, Int), Int) (* Plus *)
     | Minus -> Fun (Prod (Int, Int), Int) (* Minus *)
     | Eq -> Fun (Prod (Int, Int), Bool) (* Eq *)
+    | Num _ -> Int (* Num *)
 
 let typeOf e = typing (createEmptyContext ()) e 
 let typeOpt e = try Some (typeOf e) 
