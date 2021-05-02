@@ -29,18 +29,19 @@ let emptyEnv = NOT_IMPLEMENT_ENV
 let value2exp _ = raise NotImplemented
 
 (* Problem 1. 
- * texp2exp : Tml.texp -> Tml.exp *)
+ * texp2exp : Tml.texp -> Tml.exp *)  
 
 let rec fvariable e= 
-  let rec union l1 l2 =
-    let rec isMem x l =
-      match l with
-      | [] -> false
-      | h::t -> if x=h then true else isMem x t
-    in
+  let union l1 l2 =
+    let rec uni l1 l2 =
     match l2 with
     | [] -> l1
-    | h::t -> if (isMem h l1) then union (h::l1) t else union l1 t
+    | h::t ->
+      if List.mem h l1 
+      then uni (h::(List.filter (fun x -> h<>x) l1)) t
+      else uni (h::l1) t
+    in
+    uni l1 (List.rev l2)
   in
   let rec fvar e =
     match e with
@@ -57,13 +58,16 @@ let rec fvariable e=
     | Tinl (e', t) -> fvar e'
     | Tinr (e', t) ->fvar e'
     | Tcase (e', x1, e1, x2, e2) ->
-      union (union (fvar e') (List.filter (fun v -> x1<>v) (fvariable e1))) (List.filter (fun v -> x2<>v) (fvariable e2))
+      let fe' = fvar e' in
+      let fe1 = List.filter (fun v -> x1<>v) (fvar e1) in
+      let fe2 = List.filter (fun v -> x2<>v) (fvar e2) in
+      union (union fe' fe1) fe2
     | Tfix (x, t, e') ->
       List.filter (fun v -> x<>v) (fvar e')
     | Ttrue -> []
     | Tfalse -> []
     | Tifthenelse (e', e1, e2) ->
-      union (union (fvar e') (fvar e1)) (fvar e2) (* TODO *)
+      union (union (fvar e') (fvar e1)) (fvar e2)
     | Tnum i -> []
     | Tplus -> []
     | Tminus -> []
@@ -80,7 +84,7 @@ let texp2exp e =
     | Tlam (x, t, e') ->
       Lam (texp2exp' e' (naming@[x, n]))
     | Tapp (e1, e2) ->
-      App ((texp2exp' e1 naming), (texp2exp' e2 naming)) (* TODO: start from zero? *)
+      App ((texp2exp' e1 naming), (texp2exp' e2 naming))
     | Tpair (e1, e2) ->
       Pair ((texp2exp' e1 naming), (texp2exp' e2 naming))
     | Tfst e' ->
@@ -115,9 +119,10 @@ let texp2exp e =
   let rec makePair list n res = 
     match list with
     | [] -> res
-    | h::t -> makePair list (n+1) (res@[(h, n)])
+    | h::t -> makePair t (n-1) (res@[(h, n)])
   in
-  let free = makePair (fvariable e) 0 [] in
+  let fr = fvariable e in
+  let free = makePair fr ((List.length fr)-1) [] in
   texp2exp' e free
 
 (* Problem 2. 
