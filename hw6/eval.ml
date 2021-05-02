@@ -149,9 +149,19 @@ let rec isValue e =
     | Minus -> true
     | Eq -> true
 
-let substitution v x e =
-  Eunit
-  (* TODO *)
+let shift _ = raise NotImplemented
+
+let rec substitution m i n =
+  match m with
+  | Ind j ->
+    if i>j then Ind j
+    else if i<j then Ind (j-1)
+    else shift n
+  | Lam m' ->
+    Lam (substitution m' (i+1) n)
+  | App (m1, m2) ->
+    App ((substitution m1 i n), (substitution m2 i n))
+  | _ -> m
 
 let rec step1 e =
   match e with
