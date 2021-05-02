@@ -30,7 +30,89 @@ let value2exp _ = raise NotImplemented
 
 (* Problem 1. 
  * texp2exp : Tml.texp -> Tml.exp *)
-let texp2exp _ = raise NotImplemented
+
+let rec fvariable e= 
+  let rec union l1 l2 =
+    let rec isMem x l =
+      match l with
+      | [] -> false
+      | h::t -> if x=h then true else isMem x t
+    in
+    match l2 with
+    | [] -> l1
+    | h::t -> if (isMem h l1) then union (h::l1) t else union l1 t
+  in
+  let rec fvar e =
+    match e with
+    | Tvar x -> [x]
+    | Tlam (x, t, e') ->
+      List.filter (fun v -> x<>v) (fvar e')
+    | Tapp (e1, e2) ->
+      union (fvar e1) (fvar e2)
+    | Tpair (e1, e2) ->
+      union (fvar e1) (fvar e2)
+    | Tfst e' -> fvar e'
+    | Tsnd e' -> fvar e'
+    | Teunit -> []
+    | Tinl (e', t) -> fvar e'
+    | Tinr (e', t) ->fvar e'
+    | Tcase (e', x1, e1, x2, e2) ->
+      union (union (fvar e') (List.filter (fun v -> x1<>v) (fvariable e1))) (List.filter (fun v -> x2<>v) (fvariable e2))
+    | Tfix (x, t, e') ->
+      List.filter (fun v -> x<>v) (fvar e')
+    | Ttrue -> []
+    | Tfalse -> []
+    | Tifthenelse (e', e1, e2) ->
+      union (union (fvar e') (fvar e1)) (fvar e2) (* TODO *)
+    | Tnum i -> []
+    | Tplus -> []
+    | Tminus -> []
+    | Teq -> []
+  in
+  fvar e
+
+let texp2exp e = 
+  let rec texp2exp' e naming =
+    let n = List.length naming in
+    match e with
+    | Tvar x ->
+      Ind (List.assoc x naming)
+    | Tlam (x, t, e') ->
+      Lam (texp2exp' e' (naming@[(x, n)]))
+    | Tapp (e1, e2) ->
+      App ((texp2exp' e1 naming), (texp2exp' e2 naming)) (* TODO: start from zero? *)
+    | Tpair (e1, e2) ->
+      Pair ((texp2exp' e1 naming), (texp2exp' e2 naming))
+    | Tfst e' ->
+      Fst (texp2exp' e' naming)
+    | Tsnd e' ->
+      Snd (texp2exp' e' naming)
+    | Teunit ->
+      Eunit
+    | Tinl (e', t) ->
+      Inl (texp2exp' e' naming)
+    | Tinr (e', t) ->
+      Inr (texp2exp' e' naming)
+    | Tcase (e', x1, e1, x2, e2) ->
+      let ne' = texp2exp' e' naming in
+      let ne1 = texp2exp' e1 (naming@[(x1, n)]) in
+      let ne2 = texp2exp' e2 (naming@[(x2, n)]) in
+      Case (ne', ne1, ne2)
+    | Tfix (x, t, e') ->
+      Fix (texp2exp' e' (naming@[(x, n)]))
+    | Ttrue -> True
+    | Tfalse -> False
+    | Tifthenelse (e', e1, e2) ->
+      let ne' = texp2exp' e' naming in
+      let ne1 = texp2exp' e1 naming in
+      let ne2 = texp2exp' e2 naming in
+      Ifthenelse (ne', ne1, ne2)
+    | Tnum i -> Num i
+    | Tplus -> Plus
+    | Tminus -> Minus
+    | Teq -> Eq
+  in
+  texp2exp' e []
 
 (* Problem 2. 
  * step1 : Tml.exp -> Tml.exp *)   
