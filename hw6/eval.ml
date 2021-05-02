@@ -37,7 +37,7 @@ let rec fvariable e=
     match l2 with
     | [] -> l1
     | h::t ->
-      if List.mem h l1 
+      if (List.mem h l1) 
       then uni (h::(List.filter (fun x -> h<>x) l1)) t
       else uni (h::l1) t
     in
@@ -49,9 +49,9 @@ let rec fvariable e=
     | Tlam (x, t, e') ->
       List.filter (fun v -> x<>v) (fvar e')
     | Tapp (e1, e2) ->
-      union (fvar e1) (fvar e2)
+      union (fvar e1) (fvariable e2)
     | Tpair (e1, e2) ->
-      union (fvar e1) (fvar e2)
+      union (fvar e1) (fvariable e2)
     | Tfst e' -> fvar e'
     | Tsnd e' -> fvar e'
     | Teunit -> []
@@ -59,15 +59,15 @@ let rec fvariable e=
     | Tinr (e', t) ->fvar e'
     | Tcase (e', x1, e1, x2, e2) ->
       let fe' = fvar e' in
-      let fe1 = List.filter (fun v -> x1<>v) (fvar e1) in
-      let fe2 = List.filter (fun v -> x2<>v) (fvar e2) in
+      let fe1 = List.filter (fun v -> x1<>v) (fvariable e1) in
+      let fe2 = List.filter (fun v -> x2<>v) (fvariable e2) in
       union (union fe' fe1) fe2
     | Tfix (x, t, e') ->
       List.filter (fun v -> x<>v) (fvar e')
     | Ttrue -> []
     | Tfalse -> []
     | Tifthenelse (e', e1, e2) ->
-      union (union (fvar e') (fvar e1)) (fvar e2)
+      union (union (fvar e') (fvariable e1)) (fvariable e2)
     | Tnum i -> []
     | Tplus -> []
     | Tminus -> []
@@ -75,14 +75,14 @@ let rec fvariable e=
   in
   fvar e
 
-let texp2exp e = 
+let rec texp2exp e = 
   let rec texp2exp' e naming =
     let n = List.length naming in
     match e with
     | Tvar x ->
-      Ind (n - 1 - (try List.assoc x naming with Not_found -> 0))
+      Ind (n-1-(List.assoc x naming))
     | Tlam (x, t, e') ->
-      Lam (texp2exp' e' (naming@[x, n]))
+      Lam (texp2exp' e' (naming@[(x, n)]))
     | Tapp (e1, e2) ->
       App ((texp2exp' e1 naming), (texp2exp' e2 naming))
     | Tpair (e1, e2) ->
