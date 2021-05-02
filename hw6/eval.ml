@@ -76,9 +76,9 @@ let texp2exp e =
     let n = List.length naming in
     match e with
     | Tvar x ->
-      Ind (List.assoc x naming)
+      Ind (n - 1 - (try List.assoc x naming with Not_found -> 0))
     | Tlam (x, t, e') ->
-      Lam (texp2exp' e' (naming@[(x, n)]))
+      Lam (texp2exp' e' (naming@[x, n]))
     | Tapp (e1, e2) ->
       App ((texp2exp' e1 naming), (texp2exp' e2 naming)) (* TODO: start from zero? *)
     | Tpair (e1, e2) ->
@@ -112,11 +112,17 @@ let texp2exp e =
     | Tminus -> Minus
     | Teq -> Eq
   in
-  texp2exp' e []
+  let rec makePair list n res = 
+    match list with
+    | [] -> res
+    | h::t -> makePair list (n+1) (res@[(h, n)])
+  in
+  let free = makePair (fvariable e) 0 [] in
+  texp2exp' e free
 
 (* Problem 2. 
  * step1 : Tml.exp -> Tml.exp *)   
-let rec step1 _ = raise NotImplemented
+let rec step1 e = raise Stuck
 
 (* Problem 3. 
  * step2 : state -> state *)
