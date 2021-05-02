@@ -127,7 +127,104 @@ let rec texp2exp e =
 
 (* Problem 2. 
  * step1 : Tml.exp -> Tml.exp *)   
-let rec step1 e = raise Stuck
+
+let rec isValue e =
+  match e with
+    | Ind i -> true
+    | Lam e' -> true
+    | App (e1, e2) -> false
+    | Pair (e1, e2) -> (isValue e1)&&(isValue e2)
+    | Fst e' -> true
+    | Snd e' -> true
+    | Eunit -> true
+    | Inl e' -> isValue e'
+    | Inr e' -> isValue e'
+    | Case (e', e1, e2) -> false
+    | Fix e' -> false
+    | True -> true
+    | False -> true
+    | Ifthenelse (e', e1, e2) -> false
+    | Num i -> true
+    | Plus -> true
+    | Minus -> true
+    | Eq -> true
+
+let substitution v x e =
+  Eunit
+  (* TODO *)
+
+let rec step1 e =
+  match e with
+    | App (e1, e2) ->
+      (match e1 with
+      | Lam e1' ->
+        if isValue e2
+        (* App *)
+        then substitution e2 0 e1'
+        (* Arg *)
+        else App(e1, step1 e2)
+      | _ ->
+        (* Lam *)
+        App(step1 e1, e2)
+    )
+    | Pair (e1, e2) ->
+      if isValue e1
+      (* Pair' *)
+      then Pair(step1 e1, e2)
+      (* Pair *)
+      else Pair(e1, step1 e2)
+    | Fst e' ->
+      (match e' with
+      | Pair (v1, v2) -> if (isValue v1)&&(isValue v2)
+        (* Fst' *)
+        then v1
+        (* Fst *)
+        else Fst(step1 e')
+      | _ -> Fst (step1 e')
+      )
+    | Snd e' ->
+      (match e' with
+      | Pair (v1, v2) -> if (isValue v1)&&(isValue v2)
+        (* Snd' *)
+        then v2
+        (* Snd *)
+        else Snd(step1 e')
+      | _ -> Snd (step1 e')
+      )
+    | Inl e' ->
+    (* Inl *)
+      Inl (step1 e')
+    | Inr e' ->
+    (* Inr *)
+      Inr (step1 e')
+    | Case (e', e1, e2) ->
+      (match e' with
+      | Inl v -> if isValue v
+        (* Case' *)
+        then substitution v 0 e1
+        (* Case *)
+        else Case (step1 e', e1, e2)
+      | Inr v -> if isValue v
+        (* Case'' *)
+        then substitution v 0 e2
+        (* Case *)
+        else Case (step1 e', e1, e2)
+      | _ -> Case (step1 e', e1, e2)
+      )
+    | Fix e' ->
+      (* Fix *)
+      substitution (Fix e') 0 e'
+    | Ifthenelse (e', e1, e2) ->
+      (match e' with
+      (* If True *)
+      | True -> e1
+      (* If False *)
+      | False -> e1
+      (* If *)
+      | _ -> Ifthenelse (step1 e', e1, e2)
+      )
+    | _ -> raise Stuck
+
 
 (* Problem 3. 
  * step2 : state -> state *)
