@@ -149,14 +149,21 @@ let rec isValue e =
     | Minus -> true
     | Eq -> true
 
-let shift _ = raise NotImplemented
+let rec shift i n m =
+  match m with
+  | App (m1, m2) ->
+    App (shift i n m1, shift i n m2)
+  | Lam m' ->
+    Lam (shift (i+1) n m')
+  | Ind j ->
+    if j<i then Ind j else Ind (j+i)
 
 let rec substitution m i n =
   match m with
   | Ind j ->
     if i>j then Ind j
     else if i<j then Ind (j-1)
-    else shift n
+    else shift 0 j n
   | Lam m' ->
     Lam (substitution m' (i+1) n)
   | App (m1, m2) ->
