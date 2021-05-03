@@ -42,7 +42,12 @@ let emptyEnv = Eenv (Heap.empty)
 (* Implement the function value2exp : value -> Tml.exp
  * Warning : If you give wrong implementation of this function,
  *           you wiil receive no credit for the entire third part!  *)
-let value2exp _ = raise NotImplemented
+let value2exp v =
+  | VEunit -> Eunit
+  | VTrue -> True
+  | VFalse -> False
+  | VNum (i, _) -> Num i
+  | _ -> raise NotConvertible
 
 (* Problem 1. 
  * texp2exp : Tml.texp -> Tml.exp *)  
