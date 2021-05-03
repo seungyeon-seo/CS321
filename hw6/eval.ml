@@ -171,6 +171,7 @@ let rec substitution m i n =
   | _ -> m
 
 let rec step1 e =
+  if isValue e then raise Stuck else
   match e with
     | App (e1, e2) ->
       (match e1 with
@@ -180,10 +181,32 @@ let rec step1 e =
         then substitution e2 0 e1'
         (* Arg *)
         else App(e1, step1 e2)
+      | Plus ->
+        (match e2 with
+          (* Plus *)
+          | Pair (Num i, Num j) -> Num (i+j)
+          (* Arith *)
+          | _ -> App(e1, step1 e2) 
+        )
+      | Minus ->
+        (match e2 with
+          (* Minus *)
+          | Pair (Num i, Num j) -> Num (i-j)
+          (* Arith *)
+          | _ -> App(e1, step1 e2)
+        )
+      | Eq ->
+        (match e2 with
+          (* Eq *)
+          | Pair (Num i, Num j) ->
+            if (i=j) then True else False
+          (* Arith *)
+          | _ -> App(e1, step1 e2)
+        )
       | _ ->
         (* Lam *)
         App(step1 e1, e2)
-    )
+      )
     | Pair (e1, e2) ->
       if isValue e1
       (* Pair' *)
@@ -236,9 +259,10 @@ let rec step1 e =
       (* If True *)
       | True -> e1
       (* If False *)
-      | False -> e1
+      | False -> e2
       (* If *)
-      | _ -> Ifthenelse (step1 e', e1, e2)
+      | _ ->
+        Ifthenelse (step1 e', e1, e2)
       )
     | _ -> raise Stuck
 
