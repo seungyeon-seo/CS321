@@ -43,6 +43,7 @@ let emptyEnv = Eenv (Heap.empty)
  * Warning : If you give wrong implementation of this function,
  *           you wiil receive no credit for the entire third part!  *)
 let value2exp v =
+  match v with
   | VEunit -> Eunit
   | VTrue -> True
   | VFalse -> False
@@ -334,9 +335,19 @@ let rec exp2string exp =
 
 (* state2string : state -> string 
  * you may modify this function for debugging your code *)
+let heap2string h = "hi"
+let sk2string sk = "hi"
+let env2string en = "hi"
+let value2string v = "hi"
+
 let state2string st = match st with
-    Anal_ST(_,_,exp,_) -> "Analysis : ???"
-  | Return_ST(_,_,_) -> "Return : ??? "
+    Anal_ST(h, sk , exp, env) -> "Analysis : Heap(" ^ (heap2string h) ^
+                                  ") Stack(" ^ (sk2string sk) ^
+                                  ") Exp(" ^ (exp2string exp) ^
+                                  ") Env(" ^ (env2string env) ^ ")"
+  | Return_ST(h, sk, v) -> "Return : Heap(" ^ (heap2string h) ^
+                            ") Stack(" ^ (sk2string sk) ^
+                            ") Val(" ^ (value2string v) ^ ")"
 
 (* ------------------------------------------------------------- *)     
 let stepOpt1 e = try Some (step1 e) with Stuck -> None
