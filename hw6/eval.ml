@@ -16,12 +16,28 @@ type stoval =
    | Return_ST of (stoval Heap.heap) * stack * value 
 
  (* Define your own datatypes *)
- and env = NOT_IMPLEMENT_ENV
- and value = NOT_IMPLEMENT_VALUE
- and frame = NOT_IMPLEMENT_FRAME
+ and env = Eenv of Heap.loc list
+
+ and value = 
+  | VInd of index * env
+  | VLam of exp * env
+  | VPair of exp * exp * env
+  | VEunit
+  | VInl of exp * env
+  | VInr of exp * env
+  | VTrue
+  | VFalse
+  | VNum of int * env
+  | VPlus
+  | VMinus
+  | VEq
+
+ and frame =
+  | FApp of env * exp
+  | Floc of Heap.loc
 
 (* Define your own empty environment *)
-let emptyEnv = NOT_IMPLEMENT_ENV
+let emptyEnv = Eenv (Heap.empty)
 
 (* Implement the function value2exp : value -> Tml.exp
  * Warning : If you give wrong implementation of this function,
