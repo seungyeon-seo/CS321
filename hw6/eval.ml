@@ -135,8 +135,8 @@ let rec isValue e =
     | Lam e' -> true
     | App (e1, e2) -> false
     | Pair (e1, e2) -> (isValue e1)&&(isValue e2)
-    | Fst e' -> true
-    | Snd e' -> true
+    | Fst e' -> false
+    | Snd e' -> false
     | Eunit -> true
     | Inl e' -> isValue e'
     | Inr e' -> isValue e'
@@ -183,6 +183,8 @@ let rec substitution m i n =
     Fix (substitution m (i+1) n')
   | Ifthenelse (n', n1, n2) ->
     Ifthenelse ((substitution m i n'), (substitution m i n1), (substitution m i n2))
+  | Fst n' -> Fst (substitution m i n')
+  | Snd n' -> Snd (substitution m i n')
   (* Values *)
   | _ -> n
 
