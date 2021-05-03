@@ -157,18 +157,33 @@ let rec shift i n m =
     Lam (shift (i+1) n m')
   | Ind j ->
     if j<i then Ind j else Ind (j+i)
+  | _ -> m
+
 
 let rec substitution m i n =
-  match m with
+  match n with
   | Ind j ->
     if i>j then Ind j
     else if i<j then Ind (j-1)
-    else shift 0 j n
-  | Lam m' ->
-    Lam (substitution m' (i+1) n)
-  | App (m1, m2) ->
-    App ((substitution m1 i n), (substitution m2 i n))
-  | _ -> m
+    else shift 0 j m
+  | Lam n' ->
+    Lam (substitution m (i+1) n')
+  | App (n1, n2) ->
+    App ((substitution m i n1), (substitution m i n2))
+  | Pair (n1, n2) ->
+    Pair ((substitution m i n1), (substitution m i n2))
+  | Inl n' ->
+    Inl (substitution m i n')
+  | Inr n' ->
+    Inr (substitution m i n')
+  | Case (n', n1, n2) ->
+    Case ((substitution m i n'), (substitution m (i+1) n1), (substitution m (i+1) n2))
+  | Fix n' ->
+    Fix (substitution m (i+1) n')
+  | Ifthenelse (n', n1, n2) ->
+    Ifthenelse ((substitution m i n'), (substitution m (i+1) n'), (substitution m (i+1) n'))
+  (* Values *)
+  | _ -> n
 
 let rec step1 e =
   if isValue e then raise Stuck else
