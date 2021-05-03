@@ -36,10 +36,7 @@ let rec fvariable e=
     let rec uni l1 l2 =
     match l2 with
     | [] -> l1
-    | h::t ->
-      if (List.mem h l1) 
-      then uni (h::(List.filter (fun x -> h<>x) l1)) t
-      else uni (h::l1) t
+    | h::t -> uni (h::(List.filter (fun x -> h<>x) l1)) t
     in
     uni l1 (List.rev l2)
   in
@@ -75,14 +72,22 @@ let rec fvariable e=
   in
   fvar e
 
+let rec getOrder ele list res =
+  match list with
+  | [] -> -1
+  | h::t ->
+    if h=ele then res else getOrder ele t (res+1)
+
 let rec texp2exp e = 
   let rec texp2exp' e naming =
     let n = List.length naming in
     match e with
     | Tvar x ->
-      Ind (n-1-(List.assoc x naming))
+      Ind (getOrder x naming 0)
+      (* Ind (n-1-(List.assoc x naming)) *)
     | Tlam (x, t, e') ->
-      Lam (texp2exp' e' (naming@[(x, n)]))
+      Lam (texp2exp' e' (x::naming))
+      (* Lam (texp2exp' e' (naming@[(x, n)])) *)
     | Tapp (e1, e2) ->
       App ((texp2exp' e1 naming), (texp2exp' e2 naming))
     | Tpair (e1, e2) ->
@@ -99,11 +104,14 @@ let rec texp2exp e =
       Inr (texp2exp' e' naming)
     | Tcase (e', x1, e1, x2, e2) ->
       let ne' = texp2exp' e' naming in
-      let ne1 = texp2exp' e1 (naming@[(x1, n)]) in
-      let ne2 = texp2exp' e2 (naming@[(x2, n)]) in
+      (* let ne1 = texp2exp' e1 (naming@[(x1, n)]) in *)
+      let ne1 = texp2exp' e1 (x1::naming) in
+      (* let ne2 = texp2exp' e2 (naming@[(x2, n)]) in *)
+      let ne2 = texp2exp' e2 (x2::naming) in
       Case (ne', ne1, ne2)
     | Tfix (x, t, e') ->
-      Fix (texp2exp' e' (naming@[(x, n)]))
+      Fix (texp2exp' e' (x::naming))
+      (* Fix (texp2exp' e' (naming@[(x, n)])) *)
     | Ttrue -> True
     | Tfalse -> False
     | Tifthenelse (e', e1, e2) ->
@@ -116,14 +124,8 @@ let rec texp2exp e =
     | Tminus -> Minus
     | Teq -> Eq
   in
-  let rec makePair list n res = 
-    match list with
-    | [] -> res
-    | h::t -> makePair t (n-1) (res@[(h, n)])
-  in
   let fr = fvariable e in
-  let free = makePair fr ((List.length fr)-1) [] in
-  texp2exp' e free
+  texp2exp' e fr
 
 (* Problem 2. 
  * step1 : Tml.exp -> Tml.exp *)   
