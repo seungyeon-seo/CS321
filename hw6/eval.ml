@@ -335,16 +335,55 @@ let rec exp2string exp =
 
 (* state2string : state -> string 
  * you may modify this function for debugging your code *)
-let heap2string h = "hi"
-let sk2string sk = "hi"
-let env2string en = "hi"
-let value2string v = "hi"
+let heap2string h =
+  let rec heap2string' h str =
+    match h with
+    | [] -> str ^ "]"
+    | l::h'-> heap2string' h' (str ^ (match l with (l', _) -> string_of_int l'))
+  in heap2string' h ""
+
+let frame2string f =
+  let rec frame2string' f str = match f with
+    | FApp (_, e) -> "hole " ^ (exp2string e) ^ "; "
+    | Floc l -> "[" ^ (string_of_int l) ^ "]; "
+  in frame2string' f ""
+
+let sk2string sk =
+  let rec sk2string' sk str = match sk with
+      Hole_SK -> str ^ "]"
+    | Frame_SK (sk', f) -> sk2string' sk' ((frame2string f) ^ " " ^ str)
+  in sk2string' sk ""
+
+let value2string v =
+  match v with
+  | VInd (i, en) -> "Ind(" ^ (string_of_int i) ^ ")"
+  | VLam (ex, en) -> "Lam(" ^ (exp2string ex) ^ ")"
+  | VPair (e1, e2, _) -> "Pair(" ^ (exp2string e1) ^ ", " ^ (exp2string e2) ^ ")"
+  | VEunit -> "Unit"
+  | VInl (e, _) -> "Inl(" ^ (exp2string e) ^ ")"
+  | VInr (e,_) -> "Inr(" ^ (exp2string e) ^ ")"
+  | VTrue -> "True"
+  | VFalse -> "False"
+  | VNum (i, _) -> "Num " ^ (string_of_int i)
+  | VPlus -> "+"
+  | VMinus -> "-"
+  | VEq -> "="
+
+let env2string h (Eenv en) =
+  let rec env2string' h env n str = match env with
+      [] -> str ^ "]"
+    | e :: env' -> let str' = str ^ (string_of_int n) ^ " -> " in
+                   let result = match (Heap.deref h e) with
+                       Computed v -> str' ^ "Computed(" ^ (value2string v) ^ ") "
+                     | Delayed (e', env) -> str' ^ "Delayed(" ^ (exp2string e') ^ ") "
+                   in env2string' h env' (n+1) result
+  in env2string' h en 0 ""
 
 let state2string st = match st with
     Anal_ST(h, sk , exp, env) -> "Analysis : Heap(" ^ (heap2string h) ^
                                   ") Stack(" ^ (sk2string sk) ^
                                   ") Exp(" ^ (exp2string exp) ^
-                                  ") Env(" ^ (env2string env) ^ ")"
+                                  ") Env(" ^ (env2string h env) ^ ")"
   | Return_ST(h, sk, v) -> "Return : Heap(" ^ (heap2string h) ^
                             ") Stack(" ^ (sk2string sk) ^
                             ") Val(" ^ (value2string v) ^ ")"
