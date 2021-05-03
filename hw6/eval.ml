@@ -182,7 +182,7 @@ let rec substitution m i n =
   | Fix n' ->
     Fix (substitution m (i+1) n')
   | Ifthenelse (n', n1, n2) ->
-    Ifthenelse ((substitution m i n'), (substitution m i n'), (substitution m i n'))
+    Ifthenelse ((substitution m i n'), (substitution m i n1), (substitution m i n2))
   (* Values *)
   | _ -> n
 
