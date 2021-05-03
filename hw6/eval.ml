@@ -80,7 +80,6 @@ let rec getOrder ele list res =
 
 let rec texp2exp e = 
   let rec texp2exp' e naming =
-    let n = List.length naming in
     match e with
     | Tvar x ->
       Ind (getOrder x naming 0)
@@ -183,7 +182,7 @@ let rec substitution m i n =
   | Fix n' ->
     Fix (substitution m (i+1) n')
   | Ifthenelse (n', n1, n2) ->
-    Ifthenelse ((substitution m i n'), (substitution m (i+1) n'), (substitution m (i+1) n'))
+    Ifthenelse ((substitution m i n'), (substitution m i n'), (substitution m i n'))
   (* Values *)
   | _ -> n
 
@@ -270,7 +269,7 @@ let rec step1 e =
       )
     | Fix e' ->
       (* Fix *)
-      substitution (Fix e') 0 e'
+      substitution e 0 e'
     | Ifthenelse (e', e1, e2) ->
       (match e' with
       (* If True *)
