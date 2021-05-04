@@ -35,6 +35,8 @@ type stoval =
  and frame =
   | FApp of env * exp
   | Floc of Heap.loc
+  | FIf of env * exp * exp
+  | FLam of env * exp
 
 (* Define your own empty environment *)
 let emptyEnv = Eenv (Heap.empty)
@@ -306,10 +308,83 @@ let rec step1 e =
       )
     | _ -> raise Stuck
 
+let getMem h en i =
+  match en with
+  | Eenv l ->
+    try Heap.deref h (List.nth l i) with | Not_found -> raise Stuck
+
 
 (* Problem 3. 
  * step2 : state -> state *)
-let step2 _ = raise NotImplemented
+let step2 s =
+  match s with
+  | Anal_ST (h, sk, exp, en) ->
+    (match exp with
+    | Ind i ->
+      (* Var_E *)
+      let v = getMem h en i in
+      Return_ST (h, sk, VInd(i, en))
+    | Lam e' ->
+      (* Closure_E *)
+      Return_ST (h, sk, VLam(e', en))
+    | App (e1, e2) ->
+      (* Lam_E *)
+      Anal_ST (h, Frame_SK (sk, FApp (en, e2)), e1, en)
+    (* | Pair (e1, e2) ->
+    | Fst e' ->
+    | Snd e' ->
+    | Eunit ->
+    | Inl e' ->
+    | Inr e' ->
+    | Case (e', e1, e2) ->
+    | Fix e' -> *)
+    | True ->
+      (* True_E *)
+      Return_ST (h, sk, VTrue)
+    | False ->
+      (* False_E *)
+      Return_ST (h, sk, VFalse)
+    | Ifthenelse (e', e1, e2) ->
+      (* If_E *)
+      Anal_ST (h, Frame_SK(sk, FIf(en, e1, e2)), e', en)
+    (* | Num i ->
+    | Plus ->
+    | Minus ->
+    | Eq -> *)
+    | _ -> raise Stuck
+    )
+  | Return_ST (h, sk, v) ->
+    match v with
+    | VLam (e, en) ->
+      (match sk with
+      (* Arg_E *)
+      | Frame_SK (sk', FApp(fen, fe)) ->
+        Anal_ST (h, Frame_SK(sk', FLam(en, e)), fe, fen)
+      | _ -> raise Stuck
+      )
+    | VTrue ->
+      (* If True_E *)
+      (match sk with
+      | Frame_SK (sk', FIf (en', e1, e2)) ->
+        Anal_ST (h, sk', e1, en')
+      | _ -> raise Stuck
+      )
+    | VFalse ->
+      (* If False_E *)
+      (match sk with
+      | Frame_SK (sk', FIf (en', e1, e2)) ->
+        Anal_ST (h, sk', e2, en')
+      | _ -> raise Stuck
+      )
+    | _ ->
+      (* App_E *)
+      (match sk with
+      | Frame_SK (sk', FLam(en', e')) ->
+        let (h', l') = Heap.allocate h (Delayed(e', en')) in
+        Anal_ST (h', sk', e', en')
+      | _ -> raise Stuck
+      )
+      
                     
 (* exp2string : Tml.exp -> string *)
 let rec exp2string exp = 
