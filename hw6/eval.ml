@@ -202,14 +202,13 @@ let rec shift i n m =
   | Eq -> m
   | _ -> m
 
-
-
+(* [m/i]n *)
 let rec substitution m i n =
   match n with
   | Ind j ->
     if i>j then Ind j
     else if i<j then Ind (j-1)
-    else shift 0 j m
+    else shift 0 i m
   | Lam n' ->
     Lam (substitution m (i+1) n')
   | App (n1, n2) ->
@@ -247,14 +246,14 @@ let rec step1 e =
           (* Plus *)
           | Pair (Num i, Num j) -> Num (i+j)
           (* Arith *)
-          | _ -> App(e1, step1 e2) 
+          | _ -> if isValue e2 then raise Stuck else App(e1, step1 e2)
         )
       | Minus ->
         (match e2 with
           (* Minus *)
           | Pair (Num i, Num j) -> Num (i-j)
           (* Arith *)
-          | _ -> App(e1, step1 e2)
+          | _ -> if isValue e2 then raise Stuck else App(e1, step1 e2)
         )
       | Eq ->
         (match e2 with
@@ -262,7 +261,7 @@ let rec step1 e =
           | Pair (Num i, Num j) ->
             if (i=j) then True else False
           (* Arith *)
-          | _ -> App(e1, step1 e2)
+          | _ -> if isValue e2 then raise Stuck else App(e1, step1 e2)
         )
       | _ ->
         (* Lam *)
@@ -271,9 +270,9 @@ let rec step1 e =
     | Pair (e1, e2) ->
       if isValue e1
       (* Pair' *)
-      then Pair(step1 e1, e2)
+      then Pair(e1, step1 e2)
       (* Pair *)
-      else Pair(e1, step1 e2)
+      else Pair(step1 e1, e2)
     | Fst e' ->
       (match e' with
       | Pair (v1, v2) -> if (isValue v1)&&(isValue v2)
