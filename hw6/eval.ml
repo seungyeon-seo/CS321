@@ -182,7 +182,26 @@ let rec shift i n m =
     Lam (shift (i+1) n m')
   | Ind j ->
     if j<i then Ind j else Ind (j+n)
+  | Pair (m1, m2) ->
+    Pair (shift i n m1, shift i n m2)
+  | Fst m' -> Fst (shift i n m')
+  | Snd m' -> Snd (shift i n m')
+  | Eunit -> m
+  | Inl m' -> Inl (shift i n m')
+  | Inr m' -> Inr (shift i n m')
+  | Case (m', m1, m2) ->
+    Case (shift i n m', shift (i+1) n m1, shift (i+1) n m2)
+  | Fix m' -> Fix (shift i n m')
+  | True -> m
+  | False -> m
+  | Ifthenelse (m', m1, m2) ->
+    Ifthenelse (shift i n m', shift (i+1) n m1, shift (i+1) n m2)
+  | Num i -> m
+  | Plus -> m
+  | Minus -> m
+  | Eq -> m
   | _ -> m
+
 
 
 let rec substitution m i n =
