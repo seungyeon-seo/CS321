@@ -321,8 +321,22 @@ let step2 s =
   | Anal_ST (h, sk, exp, en) ->
     (match exp with
     | Ind i ->
+      (* (match en with | Eenv(ll) ->
+      let l = (List.hd ll) in
+      let (h', l') = Heap.deref h l in
+      (match l' with
+      | Delayed(e', en') ->
+        (* insert [li] to stack *)
+        if (List.tl en) = en' then
+        Anal_ST (h, Frame_SK(sk, Floc l), e', en')
+        else
+        (* Var_E *)
+        let v = getMem h en i in
+        Return_ST (h, sk, VInd(i, en))
+      | _ -> let v = getMem h en i in Return_ST (h, sk, VInd(i, en))
+      )) *)
       (* Var_E *)
-      let v = getMem h en i in
+      let v = getMem h en i in 
       Return_ST (h, sk, VInd(i, en))
     | Lam e' ->
       (* Closure_E *)
@@ -354,7 +368,7 @@ let step2 s =
     | _ -> raise Stuck
     )
   | Return_ST (h, sk, v) ->
-    match v with
+    (match v with
     | VLam (e, en) ->
       (match sk with
       (* Arg_E *)
@@ -377,14 +391,15 @@ let step2 s =
       | _ -> raise Stuck
       )
     | _ ->
-      (* App_E *)
+      (* App_E (alloc) *)
       (match sk with
       | Frame_SK (sk', FLam(en', e')) ->
         let (h', l') = Heap.allocate h (Delayed(e', en')) in
+        (* Anal_ST (h', sk', e', l'::en') *)
         Anal_ST (h', sk', e', en')
       | _ -> raise Stuck
       )
-      
+    )
                     
 (* exp2string : Tml.exp -> string *)
 let rec exp2string exp = 
