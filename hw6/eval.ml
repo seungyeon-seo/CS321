@@ -181,7 +181,7 @@ let rec shift i n m =
   | Lam m' ->
     Lam (shift (i+1) n m')
   | Ind j ->
-    if j<i then Ind j else Ind (j+i)
+    if j<i then Ind j else Ind (j+n)
   | _ -> m
 
 
