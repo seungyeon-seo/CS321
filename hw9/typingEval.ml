@@ -3,8 +3,25 @@ open Fjava
 exception NotImplemented
 exception TypeError
 exception Stuck
+exception NotFound
 
-let typeOf p = raise NotImplemented
+
+let rec isSubClass a b l =
+  let rec findCdec c l =
+    match l with
+    | [] -> raise NotFound
+    | h::t ->
+      let (cls, su, _, _, _) = h in
+      if (cls = c) then h else findCdec c t
+  in
+  let (cl, super, _, _, _) = a in
+  if cl = b then true
+  else if super = b then true
+  else try isSubClass (findCdec super l) b with | NotFound -> false
+
+(* Fjava.program -> Fjava.typ *)
+let typeOf p =
+
 
 let step p = raise NotImplemented
 
