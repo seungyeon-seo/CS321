@@ -25,7 +25,6 @@ let rec isSubClass2 alist blist l =
   | (a::at, b::bt) ->
     if isSubClass a b l then isSubClass2 at bt l else false
 
-
 let rec fields c clDlist =
   match clDlist with
   | [] -> rasie NotFound
@@ -50,7 +49,7 @@ let rec typeOfexps elist clDlist res =
   match elist with
   | [] -> res
   | e::t ->
-    typeOfexps t clDlist res@[(typeOf (clDlist, e)]
+    typeOfexps t clDlist (res@[(typeOf clDlist, e)])
 
 (* Fjava.program -> Fjava.typ *)
 let rec typeOf p =
@@ -81,7 +80,7 @@ let rec typeOf p =
     (* T-DCast *)
     else if isSubClass c d then c
     (* T-SCast *)
-    else if
+    else
     print_string("Stupid Warning\n")
     c
 
