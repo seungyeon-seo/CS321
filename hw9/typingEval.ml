@@ -19,6 +19,13 @@ let rec isSubClass a b l =
   else if super = b then true
   else try isSubClass (findCdec super l) b with | NotFound -> false
 
+let rec isSubClass2 alist blist l =
+  match (alist, blist) with
+  | [] -> true
+  | (a::at, b::bt) ->
+    if isSubClass a b l then isSubClass2 at bt l else false
+
+
 let rec fields c clDlist =
   match clDlist with
   | [] -> rasie NotFound
@@ -26,14 +33,24 @@ let rec fields c clDlist =
     if c = cls then flist else fields c t
 
 let rec mtype m c0 clDlist =
+  let rec mtype2 m mlist =
+    match mlist with
+    | [] -> mtype m sup clDlist
+    | (rt, mn, plist, body)::t ->
+      if mn = m then
+      let b_ = List.map (fun (x,y) -> x) plist in
+      (b_, rt) else mtype2 m t
+  in
   match clDlist with
   | [] -> raise NotFound
-  | (cls, _, _, _, mlist)::t ->
-    if c0 = c then 
-  (* match mlist with
-  | [] -> raise NotFound
-  | (ty, mname, plist, body)::t ->
-    if c = mname then (plist, ty) else getTypeMethod c t *)
+  | (cls, sup, _, conDlist, mlist)::t ->
+    if c0 = cls then mtype2 m mlist
+
+let rec typeOfexps elist clDlist res =
+  match elist with
+  | [] -> res
+  | e::t ->
+    typeOfexps t clDlist res@[(typeOf (clDlist, e)]
 
 (* Fjava.program -> Fjava.typ *)
 let rec typeOf p =
@@ -46,11 +63,11 @@ let rec typeOf p =
     let flist = fields (typeOf (clDlist, e')) clDlist in
     List.asso s (List.map (fun (x,y) -> (y,x)) flist)
   | Method (e0, m, e_) ->
-    (* T-Invk *) (* ?? D->C가 뭘까? *)
+    (* T-Invk *)
     let c0 = typeOf (clDlist, e0) in
-    let mt = mtype m c0 in
-    (* try let (d_, c) = getTypeMethod c0 flist with | NotFound -> raise TypeError in
-    let c_ = in *)
+    let c_ = typeOfexps e_ clDlist [] in 
+    let (d_, c) = mtype m c0 clDlist in
+    if isSubClass2 c_ d_ clDlist then c else raise TypeError
     
   | New (t, l) -> 
 
