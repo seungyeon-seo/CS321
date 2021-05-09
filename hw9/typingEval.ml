@@ -68,9 +68,12 @@ let rec typeOf p =
     let c_ = typeOfexps e_ clDlist [] in 
     let (d_, c) = mtype m c0 clDlist in
     if isSubClass2 c_ d_ clDlist then c else raise TypeError
-    
-  | New (t, l) -> 
-
+  | New (c, e_) -> 
+    (* T-New *)
+    let flist = fields c clDlist in
+    let d_ = List.map (fun (x,y) -> x) flist in
+    let c_ = typeOfexps e_ clDlist [] in
+    if isSubClass2 c_ d_ then c else raise TypeError
   | Cast (t, e') ->
 
 
