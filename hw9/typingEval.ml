@@ -74,7 +74,16 @@ let rec typeOf p =
     let d_ = List.map (fun (x,y) -> x) flist in
     let c_ = typeOfexps e_ clDlist [] in
     if isSubClass2 c_ d_ then c else raise TypeError
-  | Cast (t, e') ->
+  | Cast (c, e0) ->
+    let d = typeOf (clDlist, e0) in
+    (* T-UCast *)
+    if isSubClass d c then c
+    (* T-DCast *)
+    else if isSubClass c d then c
+    (* T-SCast *)
+    else if
+    print_string("Stupid Warning\n")
+    c
 
 
 let step p = raise NotImplemented
