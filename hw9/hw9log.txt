@@ -1,0 +1,2 @@
+(new App(new App(new App(new S(), new K()), new K()), new App(new App(new S(), new K()), new K()))).eval() : Exp
+
