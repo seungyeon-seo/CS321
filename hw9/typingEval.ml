@@ -71,11 +71,17 @@ let rec mtype m c clsDecl =
   | New (c, e_) ->
   | Cast (c, e0) -> *)
 
+(* methodname -> classname -> field type list -> m return type -> classDecl list -> bool *)
+let override m d c_ c0 clsDecl =
+  let (d_, d0) = try mtype m d with | NotFound -> true in
+  if (isSubclass2 c_ d_)&&(isSubclass2 d_ c_)&&(c0 = d0) then true else false
+
 (* methodDecl -> classDecl -> classDecl list -> bool *)
 let t_method m' cls clsDecl =
-  let (c0, m, (c_, x_), e0) = m' in
+  let (c0, m, flist, e0) = m' in
+  let (c_, x_) = List.split flist in 
   let (c, d, _, _, _) = cls in
-  if override m d, (c_, c0) then
+  if override m d c_ c0 clsDecl then
   (let env = (x_, c_)::(m, c) in
   let e0t = typeofexp e0 env clsDecl in
   isSubclass e0t c0
