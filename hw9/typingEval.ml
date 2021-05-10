@@ -57,19 +57,45 @@ let rec mtype m c clsDecl =
   let (b_, _) = List.split plist in
   (b_, b)
 
-(* exp -> env(string * typ list) -> classDecl list *)
-(* let typeofexp e env clsDecl =
-  match e with
-  | Var x ->
-    (* T-Var *)
-    try List.assoc x env with | Not_found -> raise NotFound
-  | Field (e0, f) ->
-    try let c0 = List.assoc e0 env with | Not_found -> rasie NotFound in
-    let (d_, c) = mtype m c0 clsDecl in
-    typeofexps e_ env
-  | Method (e0, m, e_) ->
-  | New (c, e_) ->
-  | Cast (c, e0) -> *)
+(* exp -> env(string * typ list) -> classDecl list -> type list *)
+let rec typeofexps elist env clsDecl res =
+  let rec typeofexp e env clsDecl =
+    match e with
+    | Var x ->
+      (* T-Var *)
+      try List.assoc x env with | Not_found -> raise TypeError
+
+    | Field (e0, f) ->
+      (* T-Field *)
+      try let c0 = List.assoc e0 env with | Not_found -> raise TypeError in
+      let flist = List.map (fun (x,y) -> (y,x)) (fields c0 clsDecl) in
+      try List.assoc f flist with | Not_found -> raise TypeError
+
+    | Method (e0, m, e_) ->
+      (* T-Invk *)
+      let (d_, c) = mtype m c0 clsDecl in
+      let c0 = typeofexp e0 env clsDecl in
+      let c_ = typeofexps e_ env clsDecl [] in
+      if isSubclass2 c_ d_ then c else raise TypeError
+
+    | New (c, e_) ->
+      (* T-New *)
+      let (d_, f_) = List.split (fields c clsDecl) in
+      let c_ = typeofexps e_ env clsDecl [] in
+      if isSubclass2 c_ d_ then c else raise TypeError
+
+    | Cast (c, e0) ->
+      let d = typeofexp e0 env clsDecl in
+      (* T-UCast *)
+      if isSubclass d c then c
+      (* T-DCast *)
+      else if isSubclass c d then c
+      (* T-SCast *)
+      else c (* TODO: print stupidwarning *)
+  in
+  match elist with
+  | [] -> res
+  | h::t -> typeofexps t env clsDecl (res@[typeofexp h env clsDecl])
 
 (* methodname -> classname -> field type list -> m return type -> classDecl list -> bool *)
 let override m d c_ c0 clsDecl =
@@ -82,8 +108,8 @@ let t_method m' cls clsDecl =
   let (c_, x_) = List.split flist in 
   let (c, d, _, _, _) = cls in
   if override m d c_ c0 clsDecl then
-  (let env = (x_, c_)::(m, c) in
-  let e0t = typeofexp e0 env clsDecl in
+  (
+  let e0t = List.hd (typeofexps [e0] flist clsDecl []) in
   isSubclass e0t c0
   )
   else false
@@ -113,10 +139,7 @@ let typeOf p =
     | h::t -> if t_class h clsDecl then checkClass t else false
   in
   let (clsDecl, exp) = p in
-  (* TODO: env? *)
-  if checkClass then try typeofexp exp env clsDecl with | NotFound -> raise TypeError
-  else raise TypeError
-  
+  if checkClass then List.hd (typeOfexps [exp] [] clsDecl []) else raise TypeError
 
 let step p = raise NotImplemented
 
