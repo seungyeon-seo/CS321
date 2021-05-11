@@ -156,7 +156,74 @@ let typeOf p =
   if try checkClass clsDecl clsDecl with | NotFound -> raise TypeError
   then List.hd (typeofexps [exp] [] clsDecl []) else raise TypeError
 
-let step p = raise Stuck
+(* exp -> bool *)
+let rec isValue e =
+  match e with
+  | Var x -> true
+  | Field (e0, f) -> false
+  | Method (e0, m, e_) -> false
+  | New (c, e_) -> 
+    if List.exists (fun e' -> not (isValue e')) e_ then false else true
+  | Cast (c, e0) -> false
+
+let substitution _ _ _ _ _ _ = raise NotImplemented
+
+let mbody _ _ _ = raise NotImplemented
+
+let rec findtoreduce e_ prev =
+  match e_ with
+  | [] -> raise Stuck
+  | e::t ->
+    if isValue e then findtoreduce t (prev@[e]) else (prev, e, t)
+
+(* Fjava.program -> Fjava.program *)
+let rec step p = 
+  let rec stepexp exp clsDecl =
+    match exp with
+    | Var x -> raise Stuck
+    | Field (e0, f) ->
+      (* R-Field *)
+      if isValue e0 then
+        (match e0 with
+        | Var x -> raise Stuck
+        | New (c, e_) ->
+          let (c_, f_) = List.split (fields c clsDecl) in
+          let fe = List.combine f_ e_ in
+          try List.assoc f fe with Not_found -> raise Stuck
+        )
+      (* RC-Field *)
+      else Field ((stepexp e0 clsDecl), f)
+    | Method (e0, m, e_) ->
+      (* R-Invk *)
+      if isValue e0 then
+        (match e0 with
+        | Var x -> raise Stuck
+        | New (c, es) ->
+          let (x_, e0') = mbody m c clsDecl in
+          substitution e_ x_ c es c e0' clsDecl
+        )
+      (* RC-Invk-Recv *)
+      else Method ((stepexp e0 clsDecl), m, e_)
+    | New (c, e_) ->
+      (* RC-New-Arg *)
+      let (f, e, l) = findtoreduce e_ [] in
+      New (c, (f@[(stepexp e clsDecl)]@l))
+    | Cast (c, e0) ->
+      (* R-Cast *)
+      if isValue e0 then
+      (match e0 with
+      | Var x -> raise Stuck
+      | New (c', e_) ->
+        if isSubclass c c' clsDecl then e0 else raise Stuck
+      )
+      (* RC-Cast *)
+      else Cast (c, stepexp e0 clsDecl)
+  in
+  let (clsDecl, exp) = p in
+  if isValue exp then raise Stuck else
+  let e = stepexp exp clsDecl in
+  (clsDecl, e)
+  
 
 let typeOpt p = try Some (typeOf p) with TypeError -> None
 let stepOpt p = try Some (step p) with Stuck -> None
