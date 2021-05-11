@@ -4,9 +4,10 @@ exception NotImplemented
 exception TypeError
 exception Stuck
 exception NotFound
+exception Test of string
 
 (* classname -> classDecl list -> classDecl *)
-let rec getCls c (clsDecl:classDecl list) =
+let rec getCls c clsDecl =
   match clsDecl with
   | [] -> raise NotFound
   | h::t ->
@@ -17,15 +18,16 @@ let rec getCls c (clsDecl:classDecl list) =
 let rec getMthd m mlist =
   match mlist with
   | [] -> raise NotFound
-  | h::[] -> (h, false)
   | h::t -> 
     let (_, mn, _, _) = h in
-    if mn = m then (h, true) else getMthd m t
+    if mn = m then h else getMthd m t
 
 (* classname -> classname -> classDecl list -> bool *)
-let rec isSubclass a b (clsDecl:classDecl list) =
+let rec isSubclass a b clsDecl =
+  if a = b then true
+  else if a = "Object" then false else
   let (_, sup, _, _, _) = getCls a clsDecl in
-  if sup = b then true else isSubclass sup b clsDecl
+  (isSubclass sup b clsDecl)
 
 (* classname list -> classname list -> classDecl list -> bool *)
 let rec isSubclass2 a_ b_ clsDecl =
@@ -33,16 +35,19 @@ let rec isSubclass2 a_ b_ clsDecl =
   | ([], []) -> true
   | (a::at, b::bt) ->
     if try isSubclass a b clsDecl with NotFound -> false then isSubclass2 at bt clsDecl else false
+  | (a::at, []) -> false
+  | ([], _) -> false
 
 (* classname -> classDecl list -> fields: (classname, fieldname) list *)
-let rec fields c (clsDecl:classDecl list) =
+let rec fields c clsDecl =
+  if c = "Object" then [] else
   let (_, d, fl, _, _) = getCls c clsDecl in
   let flist = try fields d clsDecl with | NotFound -> [] in
   fl@flist
 
 (* check if flist in plist *)
 (* (typ*string) list -> (typ*string) list -> bool *)
-let rec checkList (plist:(typ*string)list) (flist:(typ*string)list) : bool =
+let rec checkList plist flist =
   match flist with
   | [] -> true
   | (a, b)::t ->
@@ -51,10 +56,13 @@ let rec checkList (plist:(typ*string)list) (flist:(typ*string)list) : bool =
     else false
 
 (* methodname -> classname -> (typlist of parameters, return type)*)
-let rec mtype m c clsDecl = 
+let rec mtype m c clsDecl =
+  if c = "Object" then ([], c) else
   let (_, d, _, k, mlist) = try getCls c clsDecl with | NotFound -> raise NotFound in
-  let ((b, _, plist, e), check) = getMthd m mlist in
-  if check then (let (b_, _) = List.split plist in (b_, b)) else mtype m d clsDecl
+  if List.exists (fun (x, y, z, w) -> y = m) mlist then
+    let (b, _, plist, e) = getMthd m mlist in
+    let (b_, _) = List.split plist in (b_, b)
+  else mtype m d clsDecl
 
 (* exp -> env(string * typ list) -> classDecl list -> type list *)
 let rec typeofexps elist env clsDecl res =
@@ -69,20 +77,24 @@ let rec typeofexps elist env clsDecl res =
       let c0 = typeofexp e0 env clsDecl in
       let (x, y) = List.split (fields c0 clsDecl) in
       let flist = List.combine y x in
-      List.assoc f flist
+      let c = List.assoc f flist in (* Not_found *)
+      c
 
     | Method (e0, m, e_) ->
       (* T-Invk *)
       let c0 = typeofexp e0 env clsDecl in
       let (d_, c) = mtype m c0 clsDecl in
-      let c_ = typeofexps e_ env clsDecl [] in
-      if isSubclass2 c_ d_ clsDecl then c else raise TypeError
+      if c = "Object" then c0 else
+      let c_ = List.map (fun x -> typeofexp x env clsDecl) e_ in
+      if (isSubclass2 c_ d_ clsDecl) then  c
+      else raise (Test "T-invk")
 
     | New (c, e_) ->
       (* T-New *)
       let (d_, f_) = List.split (fields c clsDecl) in
-      let c_ = (typeofexps e_ env clsDecl []) in
-      if isSubclass2 c_ d_ clsDecl then c else raise TypeError
+      let c_ = List.map (fun x -> typeofexp x env clsDecl) e_ in
+      if isSubclass2 c_ d_ clsDecl then c 
+      else raise (Test "t-new")
 
     | Cast (c, e0) ->
       let d = typeofexp e0 env clsDecl in
@@ -91,19 +103,21 @@ let rec typeofexps elist env clsDecl res =
       (* T-DCast *)
       else if isSubclass c d clsDecl then c
       (* T-SCast *)
-      else c (* TODO: print stupidwarning *)
+      else let _ = print_endline "Stupid Warning" in c
   in
   match elist with
   | [] -> res
-  | h::t -> try typeofexps t env clsDecl (res@[typeofexp h env clsDecl]) with Not_found -> raise TypeError
+  | h::t -> try typeofexps t env clsDecl (res@[typeofexp h env clsDecl]) with Not_found -> raise (Test "typeofexps")
 
 (* methodname -> classname -> field type list -> m return type -> classDecl list -> bool *)
 let override m d c_ c0 clsDecl =
   let (d_, d0) = mtype m d clsDecl in
-  if (c0 = d0)&&(isSubclass2 c_ d_ clsDecl)&&(isSubclass2 d_ c_ clsDecl) then true else false
+  if d0 = "Object" then true else  
+  if (c0 = d0)&&(isSubclass2 c_ d_ clsDecl)&&(isSubclass2 d_ c_ clsDecl) then true 
+  else false
 
 (* methodDecl -> classDecl -> classDecl list -> bool *)
-let t_method m' cls (clsDecl:classDecl list) =
+let t_method m' cls clsDecl =
   let (c0, m, flist, e0) = m' in
   let (c_, x_) = List.split flist in
   (* let fl = List.map (fun (x, y) -> (y, x)) flist in *)
@@ -111,20 +125,20 @@ let t_method m' cls (clsDecl:classDecl list) =
   let (c, d, _, _, _) = cls in
   if try override m d c_ c0 clsDecl with | NotFound -> false then
   (
-  let e0t = List.hd (typeofexps [e0] fl clsDecl []) in
+  let e0t = List.hd (typeofexps [e0] (("this", c)::fl) clsDecl []) in
   isSubclass e0t c0 clsDecl
   )
   else false
 
 (* methodDecl list -> classDecl -> classDecl list -> bool *)
-let rec t_methods mlist c (clsDecl:classDecl list) =
+let rec t_methods mlist c clsDecl =
   match mlist with
   | [] -> true
   | m::t ->
     if t_method m c clsDecl then t_methods t c clsDecl else false
 
 (* classDecl -> classDecl list -> bool *)
-let t_class (cls:classDecl) (clsDecl:classDecl list) : bool = 
+let t_class cls clsDecl = 
   let (c, d, flist, k, m_) = cls in
   let (c_, f_) = List.split flist in
   let (concls, plist, arglist, assignlist) = k in
@@ -134,14 +148,14 @@ let t_class (cls:classDecl) (clsDecl:classDecl list) : bool =
 
 (* Fjava.program -> Fjava.typ *)
 let typeOf p = 
-  let rec checkClass (clist:classDecl list) (clsDecl:classDecl list) : bool =
+  let rec checkClass clist clsDecl =
     match clist with
     | [] -> true
     | h::t -> if (t_class h clsDecl) then (checkClass t clsDecl) else false
   in
   let (clsDecl, exp) = p in
-  if try checkClass clsDecl clsDecl with | NotFound -> raise TypeError 
-  then List.hd (typeofexps [exp] [] clsDecl []) else raise TypeError
+  if try checkClass clsDecl clsDecl with | NotFound -> raise (Test "typeof1") 
+  then List.hd (typeofexps [exp] [] clsDecl []) else raise (Test "typeof2")
 
 let step p = raise Stuck
 
