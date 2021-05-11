@@ -166,9 +166,29 @@ let rec isValue e =
     if List.exists (fun e' -> not (isValue e')) e_ then false else true
   | Cast (c, e0) -> false
 
-let substitution _ _ _ _ _ _ = raise NotImplemented
+(* [d_/x_, e/y]e0 *)
+let rec subst d_ x_ e y e0 =
+  if isValue e0 then e0 else
+  match e0 with
+  | Field (e', f) ->
+    Field ((subst d_ x_ e y e'), f)
+  | Method (e', m, e_) ->
+    let ne_ = List.map (fun x -> subst d_ x_ e y x) e_ in
+    Method ((subst d_ x_ e y e'), m, ne_)
+  | New (c, e_) ->
+    let ne_ = List.map (fun x -> subst d_ x_ e y x) e_ in
+    New (c, ne_)
+  | Cast (c, e') ->
+    Cast (c, (subst d_ x_ e y e'))
 
-let mbody _ _ _ = raise NotImplemented
+(* method name -> class name -> classDecl list -> (parameter string list, body) *)
+let rec mbody m cls clsDecl = 
+  let (c, d, flist, k, mlist) = try getCls cls clsDecl with NotFound -> raise Stuck in
+  if List.exists (fun (x, y, z, w) -> y = m) mlist then
+    let (_, _, plist, e) = getMthd m mlist in
+    let (_, x_) = List.split plist in
+    (x_, e)
+  else mbody m d clsDecl
 
 let rec findtoreduce e_ prev =
   match e_ with
@@ -200,7 +220,7 @@ let rec step p =
         | Var x -> raise Stuck
         | New (c, es) ->
           let (x_, e0') = mbody m c clsDecl in
-          substitution e_ x_ c es c e0' clsDecl
+          subst e_ x_ c c e0'
         )
       (* RC-Invk-Recv *)
       else Method ((stepexp e0 clsDecl), m, e_)
