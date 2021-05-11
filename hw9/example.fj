@@ -15,5 +15,5 @@ class Pair extends Object {
     }
 }
 
-new Pair(new A(), new B()).snd
+((Pair)new Pair(new Pair(new A(), new B()), new A()).fst).snd
 ;

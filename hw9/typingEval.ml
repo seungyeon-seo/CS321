@@ -4,7 +4,6 @@ exception NotImplemented
 exception TypeError
 exception Stuck
 exception NotFound
-exception Test of string
 
 (* classname -> classDecl list -> classDecl *)
 let rec getCls c clsDecl =
@@ -156,10 +155,15 @@ let typeOf p =
   if try checkClass clsDecl clsDecl with | NotFound -> raise TypeError
   then List.hd (typeofexps [exp] [] clsDecl []) else raise TypeError
 
+
+
+
+(* Problem 2 evaluation *)
+
 (* exp -> bool *)
 let rec isValue e =
   match e with
-  | Var x -> true
+  | Var x -> false
   | Field (e0, f) -> false
   | Method (e0, m, e_) -> false
   | New (c, e_) -> 
@@ -168,8 +172,11 @@ let rec isValue e =
 
 (* [d_/x_, e/y]e0 *)
 let rec subst d_ x_ e y e0 =
-  if isValue e0 then e0 else
   match e0 with
+  | Var x ->
+    let l = List.combine x_ d_ in
+    (try List.assoc x l with | Not_found -> e)
+    (* (try Var (List.assoc e0 l) with | Not_found -> raise Stuck) *)
   | Field (e', f) ->
     Field ((subst d_ x_ e y e'), f)
   | Method (e', m, e_) ->
@@ -192,7 +199,7 @@ let rec mbody m cls clsDecl =
 
 let rec findtoreduce e_ prev =
   match e_ with
-  | [] -> raise Stuck
+  | [] -> raise NotFound
   | e::t ->
     if isValue e then findtoreduce t (prev@[e]) else (prev, e, t)
 
@@ -212,18 +219,26 @@ let rec step p =
           try List.assoc f fe with Not_found -> raise Stuck
         )
       (* RC-Field *)
-      else Field ((stepexp e0 clsDecl), f)
+      else 
+      Field ((stepexp e0 clsDecl), f)
     | Method (e0, m, e_) ->
-      (* R-Invk *)
-      if isValue e0 then
-        (match e0 with
-        | Var x -> raise Stuck
-        | New (c, es) ->
-          let (x_, e0') = mbody m c clsDecl in
-          subst e_ x_ c c e0'
-        )
+      if (isValue e0) then (
+        if List.exists (fun x -> not (isValue x)) e_ then
+          (* RC-Invk-Arg *)
+          let (f, e, l) = findtoreduce e_ [] in
+          Method (e0, m, (f@[(stepexp e clsDecl)]@l))
+        (* R-Invk *)
+        else 
+          (match e0 with
+          | Var x -> raise Stuck
+          | New (c, es) ->
+            let (x_, e0') = mbody m c clsDecl in
+            subst e_ x_ e0 c e0'
+          )
+      )
       (* RC-Invk-Recv *)
-      else Method ((stepexp e0 clsDecl), m, e_)
+      else 
+      Method ((stepexp e0 clsDecl), m, e_)
     | New (c, e_) ->
       (* RC-New-Arg *)
       let (f, e, l) = findtoreduce e_ [] in
@@ -237,7 +252,8 @@ let rec step p =
         if isSubclass c c' clsDecl then e0 else raise Stuck
       )
       (* RC-Cast *)
-      else Cast (c, stepexp e0 clsDecl)
+      else 
+      Cast (c, stepexp e0 clsDecl)
   in
   let (clsDecl, exp) = p in
   if isValue exp then raise Stuck else
