@@ -84,17 +84,16 @@ let rec typeofexps elist env clsDecl res =
       (* T-Invk *)
       let c0 = typeofexp e0 env clsDecl in
       let (d_, c) = mtype m c0 clsDecl in
-      if c = "Object" then c0 else
       let c_ = List.map (fun x -> typeofexp x env clsDecl) e_ in
-      if (isSubclass2 c_ d_ clsDecl) then  c
-      else raise (Test "T-invk")
+      if (isSubclass2 c_ d_ clsDecl) then c
+      else raise TypeError
 
     | New (c, e_) ->
       (* T-New *)
       let (d_, f_) = List.split (fields c clsDecl) in
       let c_ = List.map (fun x -> typeofexp x env clsDecl) e_ in
       if isSubclass2 c_ d_ clsDecl then c 
-      else raise (Test "t-new")
+      else raise TypeError
 
     | Cast (c, e0) ->
       let d = typeofexp e0 env clsDecl in
@@ -107,7 +106,7 @@ let rec typeofexps elist env clsDecl res =
   in
   match elist with
   | [] -> res
-  | h::t -> try typeofexps t env clsDecl (res@[typeofexp h env clsDecl]) with Not_found -> raise (Test "typeofexps")
+  | h::t -> try typeofexps t env clsDecl (res@[typeofexp h env clsDecl]) with Not_found -> raise TypeError
 
 (* methodname -> classname -> field type list -> m return type -> classDecl list -> bool *)
 let override m d c_ c0 clsDecl =
@@ -154,8 +153,8 @@ let typeOf p =
     | h::t -> if (t_class h clsDecl) then (checkClass t clsDecl) else false
   in
   let (clsDecl, exp) = p in
-  if try checkClass clsDecl clsDecl with | NotFound -> raise (Test "typeof1") 
-  then List.hd (typeofexps [exp] [] clsDecl []) else raise (Test "typeof2")
+  if try checkClass clsDecl clsDecl with | NotFound -> raise TypeError
+  then List.hd (typeofexps [exp] [] clsDecl []) else raise TypeError
 
 let step p = raise Stuck
 
